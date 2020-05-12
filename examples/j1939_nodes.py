@@ -11,13 +11,15 @@ from __future__ import print_function
 import can
 import j1939
 import logging
+import tempfile
+import os
 
-lLevel = logging.WARNING
+lLevel = logging.DEBUG
 
 logger = logging.getLogger()
 logger.setLevel(lLevel)
 ch = logging.StreamHandler()
-fh = logging.FileHandler('/tmp/j1939_nodes.log')
+fh = logging.FileHandler(os.path.join(tempfile.gettempdir(), 'j1939_nodes.log'))
 fh.setLevel(lLevel)
 ch.setLevel(lLevel)
 formatter = logging.Formatter('%(asctime)s | %(name)20s | %(threadName)20s | %(levelname)5s | %(message)s')
@@ -27,22 +29,20 @@ ch.setFormatter(chformatter)
 logger.addHandler(ch)
 logger.addHandler(fh)
 
-
-
 my_address = 0x09
-
-
 
 def send_j1939():
     logger.debug("send_j1939, debug")
     logger.info("send_j1939, info")
-    bus = j1939.Bus(channel='can0', bustype='socketcan',timeout=0.1)
+#    bus = j1939.Bus(channel='can0', bustype='socketcan',timeout=0.1)
+    vector_bus = j1939.Bus(bustype='vector', \
+                           app_name='node-test', \
+                           channel=[0], \
+                           bitrate=250000)
 
-    node1 = j1939.Node(bus, j1939.NodeName(0), [0x48])
-    node2 = j1939.Node(bus, j1939.NodeName(0), [0x52])
+    node1 = j1939.Node(vector_bus, j1939.NodeName(0), [0x48])
 
-    bus.connect(node1)
-    bus.connect(node2)
+    vector_bus.connect(node1)
 
     pgn_get = j1939.PGN(reserved_flag=False, data_page_flag=False, pdu_format=0xd9, pdu_specific=17)
     data = [0x10, 0x13, 0x11, 0x00, 0x00, 0xe9, 0xff, 0xff]
@@ -60,8 +60,8 @@ def send_j1939():
 
     node1.start_address_claim()
 
-    bus.flush_tx_buffer()
-    bus.shutdown()
+    vector_bus.flush_tx_buffer()
+    vector_bus.shutdown()
 
 if __name__ == "__main__":
     send_j1939()
